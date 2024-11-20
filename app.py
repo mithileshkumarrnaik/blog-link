@@ -1,7 +1,7 @@
 
 import nltk
 nltk.download('stopwords')  # Ensure stopwords are downloaded
-# nltk.download('punkt')
+nltk.download('punkt')
 
 import pandas as pd
 import re
