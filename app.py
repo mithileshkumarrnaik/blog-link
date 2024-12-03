@@ -10,26 +10,24 @@ from nltk.corpus import stopwords
 from rake_nltk import Rake
 import nltk
 import os
-nltk.download('stopwords')
-nltk.download('punkt')
+
 # Ensure NLTK data is available
 def ensure_nltk_data():
     nltk_data_path = os.path.join(os.getcwd(), "nltk_data")  # Custom nltk_data directory
     nltk.data.path.append(nltk_data_path)
 
     # Create the directory if it doesn't exist
-    if not os.path.exists(nltk_data_path):
-        os.makedirs(nltk_data_path)
+    os.makedirs(nltk_data_path, exist_ok=True)
 
-    # Ensure punkt and stopwords are downloaded
+    # Download necessary NLTK resources
     try:
         nltk.data.find('tokenizers/punkt')
     except LookupError:
-        nltk.download('punkt', download_dir=nltk_data_path, quiet=True)
+        nltk.download('punkt', download_dir=nltk_data_path, quiet=False)
     try:
         nltk.data.find('corpora/stopwords')
     except LookupError:
-        nltk.download('stopwords', download_dir=nltk_data_path, quiet=True)
+        nltk.download('stopwords', download_dir=nltk_data_path, quiet=False)
 
 ensure_nltk_data()
 
@@ -137,49 +135,17 @@ if "urls" in st.session_state:
 else:
     st.warning("Please fetch URLs first!")
 
-# Function to read exclusion list from a file
-def load_exclusion_list(file_path):
-    try:
-        with open(file_path, 'r') as f:
-            return [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        st.error(f"Exclusion list file '{file_path}' not found!")
-        return []
-
 # Step 3: Extract Keywords
 st.header("Step 3: Extract Keywords")
 if "scraped_data" in st.session_state:
-    # Load exclusion list from the external file
-    exclusion_file_path = "exclusion_list.txt"  # Adjust file path as needed
-    exclusion_list = load_exclusion_list(exclusion_file_path)
-
-    # Separate substrings and exact URLs
-    substrings_to_exclude = [item for item in exclusion_list if "http" not in item]
-    exact_urls_to_exclude = [item for item in exclusion_list if "http" in item]
-
-    # Filter out unwanted URLs
-    filtered_data = st.session_state['scraped_data']
-
-    # Exclude rows where 'url' contains any substring in substrings_to_exclude
-    for exclusion in substrings_to_exclude:
-        filtered_data = filtered_data[~filtered_data['url'].str.contains(exclusion, case=False, na=False)]
-
-    # Exclude rows where 'url' matches any of the exact URLs
-    filtered_data = filtered_data[~filtered_data['url'].isin(exact_urls_to_exclude)]
-
     if st.button("Generate Keywords"):
-        if not filtered_data.empty:
-            filtered_data = generate_keywords(filtered_data)
-            st.session_state['filtered_data'] = filtered_data
-            st.write("Updated Blog Data with Keywords")
-            st.dataframe(filtered_data)
-            filtered_data.to_csv("updated_scraped_data.csv", index=False)
-        else:
-            st.warning("No data available after applying filters.")
+        scraped_df = generate_keywords(st.session_state['scraped_data'])
+        st.session_state['scraped_data'] = scraped_df
+        st.write("Updated Blog Data with Keywords")
+        st.dataframe(scraped_df)
+        scraped_df.to_csv("updated_scraped_data.csv", index=False)
 else:
     st.warning("Please scrape blogs first!")
-
-
 
 # Step 4: Suggest Internal Links
 st.header("Step 4: Suggest Internal Links")
