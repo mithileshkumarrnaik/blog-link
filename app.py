@@ -46,30 +46,31 @@ def fetch_sitemap_urls(sitemaps):
 @st.cache_data
 def scrape_blog_data(urls):
     def fetch_blog_data(url, word_limit=1000):
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+    
+            # Extract title
+            title = soup.title.get_text(strip=True) if soup.title else "Title not found"
+    
+            # Try extracting content using various common tags or classes
+            content = (
+                soup.find('div', class_='main-content') or
+                soup.find('article') or
+                soup.find('section') or
+                soup.find('div', id='content') or  # Add more tags/classes as needed
+                soup.find('body')  # Fallback to entire body
+            )
+    
+            # Get text content
+            text = content.get_text(" ").strip() if content else "Content not found"
+    
+            # Limit the text to the specified word limit
+            return {"url": url, "title": title, "content": " ".join(text.split()[:word_limit])}
+        except Exception as e:
+            return {"url": url, "title": "Error", "content": f"Error: {e}"}
 
-        # Extract title
-        title = soup.title.get_text(strip=True) if soup.title else "Title not found"
-
-        # Try extracting content using various common tags or classes
-        content = (
-            soup.find('div', class_='main-content') or
-            soup.find('article') or
-            soup.find('section') or
-            soup.find('div', id='content') or  # Add more tags/classes as needed
-            soup.find('body')  # Fallback to entire body
-        )
-
-        # Get text content
-        text = content.get_text(" ").strip() if content else "Content not found"
-
-        # Limit the text to the specified word limit
-        return {"url": url, "title": title, "content": " ".join(text.split()[:word_limit])}
-    except Exception as e:
-        return {"url": url, "title": "Error", "content": f"Error: {e}"}
 
 @st.cache_data
 def generate_keywords(scraped_df):
