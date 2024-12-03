@@ -7,12 +7,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
 from nltk.corpus import stopwords
-nltk.download('stopwords')
-nltk.download('punkt')
 from rake_nltk import Rake
 import nltk
 import os
-
+nltk.download('stopwords')
+nltk.download('punkt')
 # Ensure NLTK data is available
 def ensure_nltk_data():
     nltk_data_path = os.path.join(os.getcwd(), "nltk_data")  # Custom nltk_data directory
