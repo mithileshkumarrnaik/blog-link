@@ -9,11 +9,10 @@ import re
 from nltk.corpus import stopwords
 from rake_nltk import Rake
 import nltk
+import os
 
 nltk.download('punkt')
 nltk.download('stopwords')
-nltk.download('punkt_tab')
-import os
 
 # Ensure NLTK data is available
 def ensure_nltk_data():
@@ -32,10 +31,6 @@ def ensure_nltk_data():
         nltk.data.find('corpora/stopwords')
     except LookupError:
         nltk.download('stopwords', download_dir=nltk_data_path)
-    try:
-        nltk.data.find('tokenizers/punkt_tab')
-    except LookupError:
-        nltk.download('punkt_tab', download_dir=nltk_data_path)
 
 ensure_nltk_data()
 
