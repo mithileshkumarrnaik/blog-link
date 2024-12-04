@@ -83,19 +83,29 @@ def scrape_blog_data(urls):
 
 @st.cache_data
 def generate_keywords(scraped_df):
+    # Function to clean text by removing HTML tags and special characters
+    def clean_text(text):
+        text = re.sub(r'<.*?>', '', str(text))  # Remove HTML tags
+        text = re.sub(r'[^\w\s]', '', text)  # Remove special characters
+        return text.strip()
+
+    # Function to extract keywords using RAKE
     def extract_keywords_with_rake(text, num_keywords=10):
-        if len(str(text).split()) < 10:  # Skip if content is less than 10 words
+        if len(text.split()) < 10:  # Skip short or insufficient content
             return "Insufficient content"
         rake = Rake()
         try:
-            rake.extract_keywords_from_text(str(text))
+            rake.extract_keywords_from_text(text)
             return ", ".join(rake.get_ranked_phrases()[:num_keywords])
         except Exception as e:
             return f"Error: {e}"
 
-    scraped_df['keywords'] = scraped_df['content'].apply(lambda x: extract_keywords_with_rake(x))
-    return scraped_df
+    # Clean content and extract keywords
+    scraped_df['clean_content'] = scraped_df['content'].apply(clean_text)
+    scraped_df['keywords'] = scraped_df['clean_content'].apply(lambda x: extract_keywords_with_rake(x))
 
+    # Return a DataFrame with relevant columns
+    return scraped_df[['url', 'title', 'keywords']]
 
 @st.cache_data
 def preprocess_text(text):
@@ -166,10 +176,22 @@ else:
 st.header("Step 3: Extract Keywords")
 if "scraped_data" in st.session_state:
     if st.button("Generate Keywords"):
+        # Generate keywords from the scraped data
         scraped_df = generate_keywords(st.session_state['scraped_data'])
         st.session_state['scraped_data'] = scraped_df
-        st.write("Updated Blog Data with Keywords")
-        st.dataframe(scraped_df)
+
+        # Display the results
+        st.write("Extracted Keywords:")
+        st.dataframe(scraped_df[['url', 'title', 'keywords']])
+
+        # Option to download the updated DataFrame as CSV
+        csv = scraped_df.to_csv(index=False)
+        st.download_button(
+            label="Download Keywords as CSV",
+            data=csv,
+            file_name="keywords_data.csv",
+            mime="text/csv"
+        )
 else:
     st.warning("Please scrape blogs first!")
 
