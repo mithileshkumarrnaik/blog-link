@@ -70,7 +70,8 @@ def scrape_blog_data(urls):
             return {"url": url, "title": title, "content": " ".join(text.split()[:word_limit])}
         except Exception as e:
             return {"url": url, "title": "Error", "content": f"Error: {e}"}
-
+    
+    return [fetch_blog_data(url) for url in urls]
 
 @st.cache_data
 def generate_keywords(scraped_df):
@@ -140,11 +141,13 @@ st.header("Step 2: Scrape Blog Data")
 if "urls" in st.session_state:
     if st.button("Scrape Blogs"):
         scraped_data = scrape_blog_data(st.session_state['urls'])
-        scraped_df = pd.DataFrame(scraped_data)
-        st.session_state['scraped_data'] = scraped_df
-        st.write("Scraped Blog Data")
-        st.dataframe(scraped_df)
-        scraped_df.to_csv("scraped_data.csv", index=False)
+        if scraped_data:
+            scraped_df = pd.DataFrame(scraped_data)
+            st.session_state['scraped_data'] = scraped_df
+            st.write("Scraped Blog Data")
+            st.dataframe(scraped_df)
+        else:
+            st.error("No data was scraped. Please check your URLs.")
 else:
     st.warning("Please fetch URLs first!")
 
@@ -156,7 +159,6 @@ if "scraped_data" in st.session_state:
         st.session_state['scraped_data'] = scraped_df
         st.write("Updated Blog Data with Keywords")
         st.dataframe(scraped_df)
-        scraped_df.to_csv("updated_scraped_data.csv", index=False)
 else:
     st.warning("Please scrape blogs first!")
 
@@ -180,8 +182,3 @@ if "scraped_data" in st.session_state:
             st.warning("No relevant links found!")
 else:
     st.warning("Please generate keywords first!")
-
-
-st.write(scraped_data)  # Debug scraped data
-st.write(scraped_df.columns)  # Check DataFrame structure
-
