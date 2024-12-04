@@ -70,7 +70,17 @@ def process_included_excluded_urls(all_urls, included_urls, excluded_urls):
     Filters URLs based on included and excluded lists.
     """
     st.write("Fetched URLs from Sitemap:", all_urls)  # Debug all fetched URLs
+    st.write("Included URLs List:", included_urls)  # Debug included URLs
+    st.write("Excluded URLs List:", excluded_urls)  # Debug excluded URLs
 
+    # Determine overlap for debugging
+    included_overlap = [url for url in all_urls if url in included_urls]
+    excluded_overlap = [url for url in all_urls if url in excluded_urls]
+
+    st.write("Overlap with Included URLs:", included_overlap)  # Debug inclusion overlap
+    st.write("Overlap with Excluded URLs:", excluded_overlap)  # Debug exclusion overlap
+
+    # Apply filtering
     if included_urls:
         # Only include URLs specified in included_urls.txt
         filtered_urls = [url for url in all_urls if url in included_urls]
