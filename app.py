@@ -9,10 +9,11 @@ import re
 from nltk.corpus import stopwords
 from rake_nltk import Rake
 import nltk
-import os
 
 nltk.download('punkt')
 nltk.download('stopwords')
+nltk.download('punkt_tab')
+import os
 
 # Ensure NLTK data is available
 def ensure_nltk_data():
@@ -31,72 +32,14 @@ def ensure_nltk_data():
         nltk.data.find('corpora/stopwords')
     except LookupError:
         nltk.download('stopwords', download_dir=nltk_data_path)
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab', download_dir=nltk_data_path)
 
 ensure_nltk_data()
 
-# Helper Function to Read Included and Excluded URLs
-@st.cache_data
-def read_url_filters():
-    """
-    Reads the included and excluded URL files from the Git repository.
-    Returns two lists: included_urls and excluded_urls.
-    """
-    included_urls = []
-    excluded_urls = []
-
-    # Read included_urls.txt
-    try:
-        with open("included_urls.txt", "r") as file:
-            included_urls = [line.strip() for line in file.readlines() if line.strip()]
-    except FileNotFoundError:
-        st.warning("included_urls.txt not found. Proceeding without inclusion filter.")
-
-    # Read excluded_urls.txt
-    try:
-        with open("excluded_urls.txt", "r") as file:
-            excluded_urls = [line.strip() for line in file.readlines() if line.strip()]
-    except FileNotFoundError:
-        st.warning("excluded_urls.txt not found. Proceeding without exclusion filter.")
-
-    st.write("Included URLs:", included_urls)  # Debug included URLs
-    st.write("Excluded URLs:", excluded_urls)  # Debug excluded URLs
-
-    return included_urls, excluded_urls
-
-# Helper Function to Process URLs Based on Included and Excluded Lists
-@st.cache_data
-def process_included_excluded_urls(all_urls, included_urls, excluded_urls):
-    """
-    Filters URLs based on included and excluded lists.
-    """
-    st.write("Fetched URLs from Sitemap:", all_urls)  # Debug all fetched URLs
-    st.write("Included URLs List:", included_urls)  # Debug included URLs
-    st.write("Excluded URLs List:", excluded_urls)  # Debug excluded URLs
-
-    # Check for overlaps
-    included_overlap = [url for url in all_urls if url in included_urls]
-    excluded_overlap = [url for url in all_urls if url in excluded_urls]
-
-    st.write("Overlap with Included URLs:", included_overlap)  # Debug inclusion overlap
-    st.write("Overlap with Excluded URLs:", excluded_overlap)  # Debug exclusion overlap
-
-    # Apply filtering logic
-    if included_urls:
-        # Filter by included list
-        filtered_urls = included_overlap
-    else:
-        # Apply exclusion list if no included list
-        filtered_urls = [url for url in all_urls if url not in excluded_urls]
-
-    if not filtered_urls:
-        st.warning("No URLs remain after filtering. Check included and excluded URL lists.")
-
-    st.write("Filtered URLs after applying inclusion/exclusion:", filtered_urls)  # Debug final filtered URLs
-
-    return filtered_urls
-
-
-# Helper Function to Fetch Sitemap URLs
+# Helper Functions
 @st.cache_data
 def fetch_sitemap_urls(sitemaps):
     urls = []
@@ -108,7 +51,6 @@ def fetch_sitemap_urls(sitemaps):
             st.error(f"Error with sitemap {sitemap}: {e}")
     return urls
 
-# Helper Function to Scrape Blog Data
 @st.cache_data
 def scrape_blog_data(urls):
     def fetch_blog_data(url, word_limit=1000):
@@ -139,7 +81,6 @@ def scrape_blog_data(urls):
     
     return [fetch_blog_data(url) for url in urls]
 
-# Helper Function to Generate Keywords
 @st.cache_data
 def generate_keywords(scraped_df):
     # Function to clean text by removing HTML tags and special characters
@@ -166,7 +107,6 @@ def generate_keywords(scraped_df):
     # Return a DataFrame with relevant columns
     return scraped_df[['url', 'title', 'keywords']]
 
-# Preprocess Text
 @st.cache_data
 def preprocess_text(text):
     stop_words = set(stopwords.words('english')).union({'https', 'com', 'blog', 'www'})
@@ -174,7 +114,6 @@ def preprocess_text(text):
     text = re.sub(r'\W+', ' ', str(text).lower())
     return stop_pattern.sub('', text)
 
-# Suggest Internal Links
 @st.cache_data
 def suggest_internal_links(content, blog_data, title_weight=2, threshold=0.15):
     content_cleaned = preprocess_text(content)
@@ -190,7 +129,7 @@ def suggest_internal_links(content, blog_data, title_weight=2, threshold=0.15):
     return suggestions[['title', 'url', 'relevance (%)']]
 
 # Streamlit Application
-st.title("Content Scraper and Link Suggester with URL Inclusion/Exclusion")
+st.title("Content Scraper and Link Suggester")
 
 # Step 1: Sitemap Selection
 SITEMAP_OPTIONS = [
@@ -199,31 +138,24 @@ SITEMAP_OPTIONS = [
     "https://blog.acviss.com/sitemap-home.xml",
 ]
 
-st.header("Step 1: Select Sitemap and Apply Filters")
+st.header("Step 1: Select Sitemap")
 selected_sitemaps = st.multiselect(
     "Choose one or more sitemaps to crawl:",
     options=SITEMAP_OPTIONS,
-    default=SITEMAP_OPTIONS
+    default=SITEMAP_OPTIONS  # Select all by default
 )
 
 if not selected_sitemaps:
     st.warning("Please select at least one sitemap.")
 else:
-    if st.button("Fetch and Filter URLs"):
-        all_urls = fetch_sitemap_urls(selected_sitemaps)
-
-        # Read included and excluded URLs from Git files
-        included_urls, excluded_urls = read_url_filters()
-
-        # Apply inclusion and exclusion filters
-        filtered_urls = process_included_excluded_urls(all_urls, included_urls, excluded_urls)
-
-        if filtered_urls:
-            st.write(f"Filtered {len(filtered_urls)} URLs from the sitemap(s):")
-            st.session_state['urls'] = filtered_urls
-            st.dataframe(filtered_urls)
+    if st.button("Fetch URLs"):
+        urls = fetch_sitemap_urls(selected_sitemaps)
+        if urls:
+            st.write(f"Extracted {len(urls)} URLs")
+            st.session_state['urls'] = urls
+            st.dataframe(urls)
         else:
-            st.error("No URLs remain after applying filters.")
+            st.error("No URLs extracted. Check the sitemap format.")
 
 # Step 2: Scrape Blog Data
 st.header("Step 2: Scrape Blog Data")
