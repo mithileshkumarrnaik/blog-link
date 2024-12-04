@@ -9,6 +9,10 @@ import re
 from nltk.corpus import stopwords
 from rake_nltk import Rake
 import nltk
+
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('punkt_tab')
 import os
 
 # Ensure NLTK data is available
@@ -23,11 +27,15 @@ def ensure_nltk_data():
     try:
         nltk.data.find('tokenizers/punkt')
     except LookupError:
-        nltk.download('punkt', download_dir=nltk_data_path, quiet=False)
+        nltk.download('punkt', download_dir=nltk_data_path)
     try:
         nltk.data.find('corpora/stopwords')
     except LookupError:
-        nltk.download('stopwords', download_dir=nltk_data_path, quiet=False)
+        nltk.download('stopwords', download_dir=nltk_data_path)
+    try:
+        nltk.data.find('tokenizers/punkt_tab')
+    except LookupError:
+        nltk.download('punkt_tab', download_dir=nltk_data_path)
 
 ensure_nltk_data()
 
@@ -76,6 +84,8 @@ def scrape_blog_data(urls):
 @st.cache_data
 def generate_keywords(scraped_df):
     def extract_keywords_with_rake(text, num_keywords=10):
+        if len(str(text).split()) < 10:  # Skip if content is less than 10 words
+            return "Insufficient content"
         rake = Rake()
         try:
             rake.extract_keywords_from_text(str(text))
@@ -85,6 +95,7 @@ def generate_keywords(scraped_df):
 
     scraped_df['keywords'] = scraped_df['content'].apply(lambda x: extract_keywords_with_rake(x))
     return scraped_df
+
 
 @st.cache_data
 def preprocess_text(text):
