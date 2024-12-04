@@ -58,6 +58,9 @@ def read_url_filters():
     except FileNotFoundError:
         st.warning("excluded_urls.txt not found. Proceeding without exclusion filter.")
 
+    st.write("Included URLs:", included_urls)  # Debug included URLs
+    st.write("Excluded URLs:", excluded_urls)  # Debug excluded URLs
+
     return included_urls, excluded_urls
 
 # Helper Function to Process URLs Based on Included and Excluded Lists
@@ -66,12 +69,16 @@ def process_included_excluded_urls(all_urls, included_urls, excluded_urls):
     """
     Filters URLs based on included and excluded lists.
     """
+    st.write("Fetched URLs from Sitemap:", all_urls)  # Debug all fetched URLs
+
     if included_urls:
         # Only include URLs specified in included_urls.txt
         filtered_urls = [url for url in all_urls if url in included_urls]
     else:
         # If no included_urls, exclude URLs in excluded_urls.txt
         filtered_urls = [url for url in all_urls if url not in excluded_urls]
+
+    st.write("Filtered URLs after applying inclusion/exclusion:", filtered_urls)  # Debug filtered URLs
 
     return filtered_urls
 
@@ -145,6 +152,7 @@ def generate_keywords(scraped_df):
     # Return a DataFrame with relevant columns
     return scraped_df[['url', 'title', 'keywords']]
 
+# Preprocess Text
 @st.cache_data
 def preprocess_text(text):
     stop_words = set(stopwords.words('english')).union({'https', 'com', 'blog', 'www'})
@@ -152,6 +160,7 @@ def preprocess_text(text):
     text = re.sub(r'\W+', ' ', str(text).lower())
     return stop_pattern.sub('', text)
 
+# Suggest Internal Links
 @st.cache_data
 def suggest_internal_links(content, blog_data, title_weight=2, threshold=0.15):
     content_cleaned = preprocess_text(content)
