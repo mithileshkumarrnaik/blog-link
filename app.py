@@ -39,7 +39,48 @@ def ensure_nltk_data():
 
 ensure_nltk_data()
 
-# Helper Functions
+# Helper Function to Read Included and Excluded URLs
+@st.cache_data
+def read_url_filters():
+    """
+    Reads the included and excluded URL files from the Git repository.
+    Returns two lists: included_urls and excluded_urls.
+    """
+    included_urls = []
+    excluded_urls = []
+
+    # Read included_urls.txt
+    try:
+        with open("included_urls.txt", "r") as file:
+            included_urls = [line.strip() for line in file.readlines() if line.strip()]
+    except FileNotFoundError:
+        st.warning("included_urls.txt not found. Proceeding without inclusion filter.")
+
+    # Read excluded_urls.txt
+    try:
+        with open("excluded_urls.txt", "r") as file:
+            excluded_urls = [line.strip() for line in file.readlines() if line.strip()]
+    except FileNotFoundError:
+        st.warning("excluded_urls.txt not found. Proceeding without exclusion filter.")
+
+    return included_urls, excluded_urls
+
+# Helper Function to Process URLs Based on Included and Excluded Lists
+@st.cache_data
+def process_included_excluded_urls(all_urls, included_urls, excluded_urls):
+    """
+    Filters URLs based on included and excluded lists.
+    """
+    if included_urls:
+        # Only include URLs specified in included_urls.txt
+        filtered_urls = [url for url in all_urls if url in included_urls]
+    else:
+        # If no included_urls, exclude URLs in excluded_urls.txt
+        filtered_urls = [url for url in all_urls if url not in excluded_urls]
+
+    return filtered_urls
+
+# Helper Function to Fetch Sitemap URLs
 @st.cache_data
 def fetch_sitemap_urls(sitemaps):
     urls = []
@@ -51,6 +92,7 @@ def fetch_sitemap_urls(sitemaps):
             st.error(f"Error with sitemap {sitemap}: {e}")
     return urls
 
+# Helper Function to Scrape Blog Data
 @st.cache_data
 def scrape_blog_data(urls):
     def fetch_blog_data(url, word_limit=1000):
@@ -81,6 +123,7 @@ def scrape_blog_data(urls):
     
     return [fetch_blog_data(url) for url in urls]
 
+# Helper Function to Generate Keywords
 @st.cache_data
 def generate_keywords(scraped_df):
     # Function to clean text by removing HTML tags and special characters
@@ -129,7 +172,7 @@ def suggest_internal_links(content, blog_data, title_weight=2, threshold=0.15):
     return suggestions[['title', 'url', 'relevance (%)']]
 
 # Streamlit Application
-st.title("Content Scraper and Link Suggester")
+st.title("Content Scraper and Link Suggester with URL Inclusion/Exclusion")
 
 # Step 1: Sitemap Selection
 SITEMAP_OPTIONS = [
@@ -138,24 +181,31 @@ SITEMAP_OPTIONS = [
     "https://blog.acviss.com/sitemap-home.xml",
 ]
 
-st.header("Step 1: Select Sitemap")
+st.header("Step 1: Select Sitemap and Apply Filters")
 selected_sitemaps = st.multiselect(
     "Choose one or more sitemaps to crawl:",
     options=SITEMAP_OPTIONS,
-    default=SITEMAP_OPTIONS  # Select all by default
+    default=SITEMAP_OPTIONS
 )
 
 if not selected_sitemaps:
     st.warning("Please select at least one sitemap.")
 else:
-    if st.button("Fetch URLs"):
-        urls = fetch_sitemap_urls(selected_sitemaps)
-        if urls:
-            st.write(f"Extracted {len(urls)} URLs")
-            st.session_state['urls'] = urls
-            st.dataframe(urls)
+    if st.button("Fetch and Filter URLs"):
+        all_urls = fetch_sitemap_urls(selected_sitemaps)
+
+        # Read included and excluded URLs from Git files
+        included_urls, excluded_urls = read_url_filters()
+
+        # Apply inclusion and exclusion filters
+        filtered_urls = process_included_excluded_urls(all_urls, included_urls, excluded_urls)
+
+        if filtered_urls:
+            st.write(f"Filtered {len(filtered_urls)} URLs from the sitemap(s):")
+            st.session_state['urls'] = filtered_urls
+            st.dataframe(filtered_urls)
         else:
-            st.error("No URLs extracted. Check the sitemap format.")
+            st.error("No URLs remain after applying filters.")
 
 # Step 2: Scrape Blog Data
 st.header("Step 2: Scrape Blog Data")
