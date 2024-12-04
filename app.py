@@ -180,3 +180,8 @@ if "scraped_data" in st.session_state:
             st.warning("No relevant links found!")
 else:
     st.warning("Please generate keywords first!")
+
+
+st.write(scraped_data)  # Debug scraped data
+st.write(scraped_df.columns)  # Check DataFrame structure
+
