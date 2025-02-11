@@ -53,7 +53,7 @@ def fetch_sitemap_urls(sitemaps):
 
 @st.cache_data
 def scrape_blog_data(urls):
-    def fetch_blog_data(url, word_limit=1000):
+    def fetch_blog_data(url, word_limit=1500):
         try:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
